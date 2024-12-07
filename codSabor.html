@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de API Google Sheets com OAuth 2.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        #log {
+            margin-top: 20px;
+            background-color: #f2f2f2;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Teste de Conexão com Google Sheets via OAuth 2.0</h1>
+    </header>
+
+    <div class="container">
+        <div id="sales_table" class="table-container" style="display:none;">
+            <table id="sales_data">
+                <thead>
+                    <tr>
+                        <th>Carimbo de data/hora</th>
+                        <th>Nome</th>
+                        <th>PEDIDO: CUSCUZ</th>
+                        <th>PEDIDO: PURÊ DE AIPIM</th>
+                        <th>Forma de pagamento</th>
+                        <th>TOTAL R$</th>
+                        <th>LUCRO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dados serão inseridos aqui -->
+                </tbody>
+            </table>
+        </div>
+        <div id="error_message" style="color: red; display:none;">
+            <p><strong>Erro ao carregar os dados. Por favor, tente novamente mais tarde.</strong></p>
+        </div>
+        <button id="authorize_button" style="display:none;">Authorize</button>
+
+        <!-- Log de mensagens -->
+        <div id="log"></div>
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        const CLIENT_ID = '755040256567-pr4es398v2quqlsnm52b6r3urqrf7j8h.apps.googleusercontent.com'; // Substitua pelo seu Client ID do JSON
+        const API_KEY = 'AIzaSyBv4b3THFcGUcYSNXEO3SvvjgZsKiNZsnI'; // Substitua pela sua API Key
+        const SPREADSHEET_ID = '1-tB2HXLcSa9w3I9GePIt8f4qttdDDHRYkgAlB45HBdY'; // Substitua pelo ID da sua planilha
+        const SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly"; // Escopo para ler a planilha
+
+        // Função para adicionar mensagens ao log
+        function logMessage(message) {
+            const logContainer = document.getElementById('log');
+            logContainer.textContent += message + '\n'; // Adiciona a mensagem no final
+            logContainer.scrollTop = logContainer.scrollHeight; // Faz o scroll para o fim
+        }
+
+        // Função para carregar e testar a conexão com a planilha
+        async function testConnection() {
+            logMessage('Testando a conexão com a API do Google Sheets...');
+            try {
+                const response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: 'Respostas ao formulário!A1:G',
+                });
+
+                logMessage('Resposta da API:');
+                logMessage(JSON.stringify(response, null, 2));  // Log de resposta detalhada
+
+                if (response && response.result.values) {
+                    const data = response.result.values;
+                    logMessage('Dados recebidos:');
+                    logMessage(JSON.stringify(data, null, 2));  // Exibe os dados recebidos
+                    if (data.length === 0) {
+                        logMessage('Nenhum dado encontrado na planilha.');
+                        document.getElementById('error_message').style.display = 'block';
+                    } else {
+                        // Caso os dados sejam encontrados, exibe-os na tabela
+                        displaySales(data);
+                    }
+                } else {
+                    logMessage('Resposta inválida ou sem dados.');
+                    document.getElementById('error_message').style.display = 'block';
+                }
+
+            } catch (err) {
+                logMessage('Erro ao acessar a planilha:');
+                logMessage(err.message);
+                document.getElementById('error_message').style.display = 'block';
+            }
+        }
+
+        // Função para exibir os dados na tabela
+        function displaySales(salesData) {
+            logMessage('Exibindo dados na tabela...');
+            let tableBody = document.getElementById('sales_data').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';  // Limpar a tabela antes de adicionar os novos dados
+
+            salesData.forEach((row, rowIndex) => {
+                let newRow = tableBody.insertRow();
+                row.forEach((cellData, cellIndex) => {
+                    let cell = newRow.insertCell();
+                    cell.textContent = cellData || 'N/A';  // Exibir 'N/A' para dados ausentes
+                });
+            });
+
+            document.getElementById('sales_table').style.display = 'block';
+        }
+
+        // Inicializa a API quando a página carregar
+        function start() {
+            logMessage('Inicializando a API do Google...');
+            gapi.load('client', async () => {
+                try {
+                    await gapi.client.init({
+                        apiKey: API_KEY,
+                        clientId: CLIENT_ID,
+                        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                        scope: SCOPES,
+                    });
+                    testConnection();
+                } catch (err) {
+                    logMessage('Erro ao inicializar a API:');
+                    logMessage(err.message);
+                    document.getElementById('error_message').style.display = 'block';
+                }
+            });
+        }
+
+        window.onload = start;
+    </script>
+</body>
+</html>
