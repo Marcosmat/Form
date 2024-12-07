@@ -24,14 +24,15 @@
 
     <script src="https://apis.google.com/js/api.js"></script>
     <script>
-        const API_KEY = 'AIzaSyBv4b3THFcGUcYSNXEO3SvvjgZsKiNZsnI';  // Substitua pela sua chave API
-        const SPREADSHEET_ID = '1-tB2HXLcSa9w3I9GePIt8f4qttdDDHRYkgAlB45HBdY';  // Substitua pelo ID da sua planilha
+        const API_KEY = 'AIzaSyBv4b3THFcGUcYSNXEO3SvvjgZsKiNZsnI'; // Sua API Key aqui
+        const SPREADSHEET_ID = '1-tB2HXLcSa9w3I9GePIt8f4qttdDDHRYkgAlB45HBdY';  // ID da sua planilha
 
         // Função para listar os dados da planilha
         function listSales() {
             gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
-                range: 'Respostas ao formulário!A1:G',  // Ajuste o intervalo conforme necessário
+                range: 'Respostas ao formulário!A1:G',  // Altere o intervalo conforme necessário
+                key: API_KEY, // Inclua a chave API aqui
             }).then(function(response) {
                 const data = response.result.values;
                 if (data && data.length > 0) {
